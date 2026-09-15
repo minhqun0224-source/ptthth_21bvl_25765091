@@ -1,0 +1,39 @@
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class TCPEchoServer {
+    public final static int PORT = 7;
+
+    public static void main(String[] args) {
+        System.out.println("Server dang khoi tao tren port " + PORT + "...");
+
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.out.println("Server da sang sang, cho kết nối từ Client...");
+
+            while (true) {
+                // Lắng nghe và chấp nhận kết nối từ Client
+                try (Socket clientSocket = serverSocket.accept();
+                     InputStream is = clientSocket.getInputStream();
+                     OutputStream os = clientSocket.getOutputStream()) {
+
+                    System.out.println("Client đã kết nối từ: " + clientSocket.getRemoteSocketAddress());
+
+                    int data;
+                    // Đọc từng byte/ký tự Client gửi sang và ghi ngược lại (Echo)
+                    while ((data = is.read()) != -1) {
+                        System.out.println("Server nhan: " + (char) data);
+                        os.write(data);
+                        os.flush(); // Đẩy dữ liệu về Client ngay lập tức
+                    }
+
+                    System.out.println("Client đã ngắt kết nối.");
+                } catch (IOException e) {
+                    System.out.println("Lỗi xử lý Client: " + e.getMessage());
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể khởi chạy Server trên port " + PORT + ": " + e.getMessage());
+        }
+    }
+}
