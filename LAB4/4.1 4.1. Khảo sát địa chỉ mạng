@@ -1,0 +1,52 @@
+package network;
+
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+public class HostInspector {
+
+    public static void main(String[] args) {
+             if (args.length != 1) {
+            System.out.println("Usage: java network.HostInspector <hostname>");
+            return;
+        }
+
+        String hostname = args[0];
+
+        try {
+           
+        	InetAddress[] addresses = InetAddress.getAllByName(hostname);
+
+            System.out.println("Host: " + hostname);
+            System.out.println("So dia chi tim duoc: " + addresses.length);
+            System.out.println("------------------------------------------");
+
+                        for (InetAddress address : addresses) {
+                printAddressInfo(address);
+                System.out.println("------------------------------------------");
+            }
+
+        } catch (UnknownHostException e) {
+                   System.err.println("Khong phan giai duoc host: " + hostname);
+            System.err.println("Chi tiet loi: " + e.getMessage());
+        }
+    }
+
+
+    private static void printAddressInfo(InetAddress address) {
+        System.out.println("- IP: " + address.getHostAddress());
+        System.out.println("  Canonical : " + address.getCanonicalHostName());
+        System.out.println("  Loopback  : " + address.isLoopbackAddress());
+        System.out.println("  Site local: " + address.isSiteLocalAddress());
+
+        if (address instanceof Inet4Address) {
+            System.out.println("  Phien ban : IPv4");
+        } else if (address instanceof Inet6Address) {
+            System.out.println("  Phien ban : IPv6");
+        } else {
+            System.out.println("  Phien ban : Khong xac dinh");
+        }
+    }
+}
