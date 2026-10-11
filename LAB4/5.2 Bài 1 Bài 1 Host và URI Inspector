@@ -1,0 +1,63 @@
+package network;
+
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
+
+public class HostUriInspector {
+
+    public static void main(String[] args) {
+        if (args.length != 2) {
+            System.out.println("Usage: java network.HostUriInspector <hostname> <uri>");
+            return;
+        }
+        inspectHost(args[0]);
+        System.out.println();
+        inspectUri(args[1]);
+    }
+
+    static void inspectHost(String host) {
+        try {
+            InetAddress[] addresses = InetAddress.getAllByName(host);
+            System.out.println("Host: " + host);
+            for (InetAddress a : addresses) {
+                System.out.println("- IP: " + a.getHostAddress());
+                System.out.println("  Loại      : " + typeOf(a));
+                System.out.println("  Loopback  : " + a.isLoopbackAddress());
+                System.out.println("  Site local: " + a.isSiteLocalAddress());
+            }
+        } catch (UnknownHostException e) {
+            System.err.println("Không phân giải được host: " + host);
+        }
+    }
+
+    static String typeOf(InetAddress a) {
+        if (a instanceof Inet4Address) return "IPv4";
+        if (a instanceof Inet6Address) return "IPv6";
+        return "Không xác định";
+    }
+
+    static void inspectUri(String text) {
+        try {
+            URI uri = new URI(text);
+            System.out.println("URI: " + uri);
+            System.out.println("- scheme  : " + show(uri.getScheme()));
+            System.out.println("- host    : " + show(uri.getHost()));
+            System.out.println("- port    : "
+                    + (uri.getPort() == -1 ? "(không có)" : String.valueOf(uri.getPort())));
+            System.out.println("- path    : " + show(uri.getPath()));
+            System.out.println("- query   : " + show(uri.getQuery()));
+            System.out.println("- fragment: " + show(uri.getFragment()));
+        } catch (URISyntaxException e) {
+            System.err.println("URI không hợp lệ: " + e.getReason()
+                    + " (vị trí " + e.getIndex() + ")");
+        }
+    }
+
+    private static String show(String s) {
+        return (s == null || s.isEmpty()) ? "(không có)" : s;
+    }
+}
