@@ -1,0 +1,43 @@
+import java.io.*;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
+
+public class ChatClient {
+
+    static final String HOST = "localhost";   
+    static final int PORT = 5000;
+
+    public static void main(String[] args) {
+        try (Socket socket = new Socket(HOST, PORT)) {
+
+            BufferedReader fromServer = new BufferedReader(
+                    new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+            PrintWriter toServer = new PrintWriter(
+                    new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
+
+            BufferedReader keyboard = new BufferedReader(
+                    new InputStreamReader(System.in, StandardCharsets.UTF_8));
+            PrintStream console = new PrintStream(System.out, true, "UTF-8");
+
+            Thread receiver = new Thread(() -> {
+                try {
+                    String line;
+                    while ((line = fromServer.readLine()) != null) {
+                        console.println(line);
+                    }
+                } catch (IOException ignored) { }
+                console.println("--- Đã ngắt kết nối với server ---");
+                System.exit(0);   
+            });
+            receiver.start();
+
+            String input;
+            while ((input = keyboard.readLine()) != null) {
+                toServer.println(input);
+            }
+
+        } catch (IOException e) {
+            System.out.println("Không kết nối được tới server: " + e.getMessage());
+        }
+    }
+}
