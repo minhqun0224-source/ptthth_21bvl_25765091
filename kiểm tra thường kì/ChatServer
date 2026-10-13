@@ -1,0 +1,196 @@
+import java.io.*;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+public class ChatServer {
+
+    static final int PORT = 5000;
+
+    private static final Map<String, List<ClientHandler>> rooms = new LinkedHashMap<>();
+    private static final Set<String> usedNames = new HashSet<>();
+
+    public static void main(String[] args) throws IOException {
+        rooms.put("Study", new ArrayList<>());
+        rooms.put("Game", new ArrayList<>());
+        rooms.put("TraiNghiem", new ArrayList<>());
+
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.out.println("Server dang chay tai cong " + PORT + " ...");
+            while (true) {
+                Socket socket = serverSocket.accept();   
+                System.out.println("Co client ket noi: " + socket.getRemoteSocketAddress());
+                new Thread(new ClientHandler(socket)).start(); 
+            }
+        }
+    }
+
+
+    static synchronized boolean registerName(String name) {
+        return usedNames.add(name.toLowerCase());  
+    }
+
+    static synchronized void unregisterName(String name) {
+        if (name != null) usedNames.remove(name.toLowerCase());
+    }
+
+    static synchronized String roomListText() {
+        StringBuilder sb = new StringBuilder("===== DANH SÁCH PHÒNG =====");
+        int i = 1;
+        for (Map.Entry<String, List<ClientHandler>> e : rooms.entrySet()) {
+            sb.append("\n").append(i++).append(". ").append(e.getKey())
+              .append(" (").append(e.getValue().size()).append(" người)");
+        }
+        return sb.toString();
+    }
+
+    static synchronized String roomByIndex(String text) {
+        try {
+            int idx = Integer.parseInt(text.trim());
+            if (idx < 1 || idx > rooms.size()) return null;
+            return new ArrayList<>(rooms.keySet()).get(idx - 1);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    static synchronized boolean createRoom(String roomName) {
+        for (String r : rooms.keySet()) {
+            if (r.equalsIgnoreCase(roomName)) return false;   
+        }
+        rooms.put(roomName, new ArrayList<>());
+        return true;
+    }
+
+    static synchronized void joinRoom(String room, ClientHandler c) {
+        rooms.get(room).add(c);
+    }
+
+    static synchronized void leaveRoom(String room, ClientHandler c) {
+        List<ClientHandler> list = rooms.get(room);
+        if (list != null) list.remove(c);
+    }
+
+    static synchronized void broadcast(String room, ClientHandler sender, String message) {
+        List<ClientHandler> list = rooms.get(room);
+        if (list == null) return;
+        for (ClientHandler c : list) {
+            if (c != sender) c.send(message);
+        }
+    }
+
+
+    static class ClientHandler implements Runnable {
+        private final Socket socket;
+        private BufferedReader in;   
+        private PrintWriter out;     
+        private String name;        
+        private String room;       
+        ClientHandler(Socket socket) {
+            this.socket = socket;
+        }
+
+        void send(String msg) {
+            out.println(msg);
+        }
+
+ 
+        public void run() {
+            try {
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+                out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
+
+                while (true) {
+                    send("Nhập tên của bạn:");
+                    String line = in.readLine();
+                    if (line == null) return;                 
+                    line = line.trim();
+                    if (line.isEmpty() || line.startsWith("/")) {
+                        send("Tên không hợp lệ, vui lòng nhập lại.");
+                    } else if (!registerName(line)) {
+                        send("Tên này đã có người dùng, vui lòng chọn tên khác.");
+                    } else {
+                        name = line;
+                        break;
+                    }
+                }
+                send("Xin chào " + name + "!");
+
+                boolean running = true;
+                while (running) {
+                    send(roomListText());
+                    send("Nhập SỐ để vào phòng | /create <tên phòng> để tạo phòng mới | /exit để thoát");
+                    String line = in.readLine();
+                    if (line == null) break;
+                    line = line.trim();
+
+                    if (line.equalsIgnoreCase("/exit")) {
+                        send("Tạm biệt " + name + "!");
+                        break;
+                    } else if (line.toLowerCase().startsWith("/create ")) {
+                        String newRoom = line.substring(8).trim();
+                        if (newRoom.isEmpty()) {
+                            send("Tên phòng không được để trống.");
+                        } else if (createRoom(newRoom)) {
+                            send("Đã tạo phòng [" + newRoom + "].");
+                        } else {
+                            send("Phòng [" + newRoom + "] đã tồn tại.");
+                        }
+                    } else {
+                        String chosen = roomByIndex(line);
+                        if (chosen == null) {
+                            send("Lựa chọn không hợp lệ.");
+                        } else {
+                            room = chosen;
+                            running = chatInRoom();  
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                System.out.println("Loi ket noi voi " + name + ": " + e.getMessage());
+            } finally {
+                cleanup();
+            }
+        }
+
+        private boolean chatInRoom() throws IOException {
+            joinRoom(room, this);
+            send("Bạn đã vào phòng [" + room + "]. Gõ /quit để rời phòng, /exit để thoát.");
+            broadcast(room, this, ">>> " + name + " đã vào phòng.");
+
+            String line;
+            while ((line = in.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+
+                if (line.equalsIgnoreCase("/quit")) {
+                    leaveCurrentRoom();
+                    send("Bạn đã rời phòng.");
+                    return true;
+                }
+                if (line.equalsIgnoreCase("/exit")) {
+                    leaveCurrentRoom();
+                    send("Tạm biệt " + name + "!");
+                    return false;
+                }
+                broadcast(room, this, name + ": " + line);
+            }
+            return false;  
+        }
+
+        private void leaveCurrentRoom() {
+            if (room != null) {
+                leaveRoom(room, this);
+                broadcast(room, this, "<<< " + name + " đã rời phòng.");
+                room = null;
+            }
+        }
+
+        private void cleanup() {
+            leaveCurrentRoom();
+            unregisterName(name);
+            try { socket.close(); } catch (IOException ignored) { }
+            System.out.println("Client " + (name != null ? name : "(chua dat ten)") + " da ngat ket noi.");
+        }
+    }
+}
