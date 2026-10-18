@@ -1,0 +1,45 @@
+package tcp;
+
+public class DateTimeTcpServer {
+    public static void main(String[] args) {
+        LineProtocolServer.run("DateTime TCP server", LineProtocolServer.portFrom(args, 0, 5000),
+                DateTimeCommands::process);
+    }
+}
+
+
+package udp;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
+
+public class DateTimeUdpClient {
+    public static void main(String[] args) {
+        String host = args.length > 0 ? args[0] : "localhost";
+        String command = args.length > 2 ? args[2] : "DATETIME";
+        try {
+            int port = args.length > 1 ? Integer.parseInt(args[1]) : 5001;
+            InetAddress server = InetAddress.getByName(host);
+            byte[] data = command.getBytes(StandardCharsets.UTF_8);
+            try (DatagramSocket socket = new DatagramSocket()) {
+                socket.setSoTimeout(3000);
+                socket.send(new DatagramPacket(data, data.length, server, port));
+                byte[] buffer = new byte[1024];
+                DatagramPacket response = new DatagramPacket(buffer, buffer.length);
+                socket.receive(response);
+                System.out.println("Server: " + new String(response.getData(),
+                        response.getOffset(), response.getLength(), StandardCharsets.UTF_8));
+            } catch (SocketTimeoutException e) {
+                System.err.println("Hết 3 giây nhưng chưa nhận được phản hồi");
+            }
+        } catch (NumberFormatException e) {
+            System.err.println("Port phải là số nguyên");
+        } catch (IOException e) {
+            System.err.println("Lỗi: " + e.getMessage());
+        }
+    }
+}
