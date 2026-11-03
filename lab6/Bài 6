@@ -1,0 +1,115 @@
+package bai6;
+
+import java.rmi.Naming;
+import java.util.Scanner;
+
+public class BankClient {
+    public static void main(String[] args) {
+        try {
+            BankService service = (BankService) Naming.lookup("rmi://localhost:1099/BankService");
+            Scanner sc = new Scanner(System.in);
+
+            boolean running = true;
+            while (running) {
+                System.out.println();
+                System.out.println("===== NGAN HANG =====");
+                System.out.println("1. Xem so du");
+                System.out.println("2. Gui tien");
+                System.out.println("3. Rut tien");
+                System.out.println("0. Thoat");
+                System.out.print("Chon: ");
+                String choice = sc.nextLine();
+
+                if (choice.equals("1")) {
+                    double balance = service.getBalance();
+                    System.out.printf("So du hien tai: %,.0f VND%n", balance);
+                } else if (choice.equals("2")) {
+                    System.out.print("Nhap so tien gui: ");
+                    double amount = Double.parseDouble(sc.nextLine());
+                    service.deposit(amount);
+                    System.out.println("Gui tien xong.");
+                } else if (choice.equals("3")) {
+                    System.out.print("Nhap so tien rut: ");
+                    double amount = Double.parseDouble(sc.nextLine());
+                    if (service.withdraw(amount)) {
+                        System.out.println("Rut tien thanh cong.");
+                    } else {
+                        System.out.println("Rut tien that bai (khong du so du hoac so tien khong hop le).");
+                    }
+                } else if (choice.equals("0")) {
+                    running = false;
+                } else {
+                    System.out.println("Lua chon khong hop le.");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai6;
+
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+
+public class BankServer {
+    public static void main(String[] args) {
+        try {
+            LocateRegistry.createRegistry(1099);
+            BankServiceImpl service = new BankServiceImpl();
+            Naming.rebind("rmi://localhost:1099/BankService", service);
+            System.out.println("Server ngan hang dang chay...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai6;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface BankService extends Remote {
+    double getBalance() throws RemoteException;
+
+    void deposit(double amount) throws RemoteException;
+
+    
+    boolean withdraw(double amount) throws RemoteException;
+}
+
+package bai6;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class BankServiceImpl extends UnicastRemoteObject implements BankService {
+
+  
+    private double balance = 1000000;
+
+    public BankServiceImpl() throws RemoteException {
+        super();
+    }
+
+    public double getBalance() throws RemoteException {
+        return balance;
+    }
+
+    public void deposit(double amount) throws RemoteException {
+        if (amount > 0) {
+            balance = balance + amount;
+        }
+    }
+
+    public boolean withdraw(double amount) throws RemoteException {
+       
+        if (amount > 0 && amount <= balance) {
+            balance = balance - amount;
+            return true;
+        }
+        return false;
+    }
+}
