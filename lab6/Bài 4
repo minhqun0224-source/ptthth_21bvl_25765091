@@ -1,0 +1,145 @@
+package bai4;
+
+import java.rmi.Naming;
+import java.util.Scanner;
+
+public class ContactClient {
+    public static void main(String[] args) {
+        try {
+            ContactService service = (ContactService) Naming.lookup("rmi://localhost:1099/ContactService");
+            Scanner sc = new Scanner(System.in);
+
+            boolean running = true;
+            while (running) {
+                System.out.println();
+                System.out.println("===== QUAN LY DANH BA =====");
+                System.out.println("1. Them lien he");
+                System.out.println("2. Sua so dien thoai");
+                System.out.println("3. Tim lien he");
+                System.out.println("4. Xoa lien he");
+                System.out.println("0. Thoat");
+                System.out.print("Chon: ");
+                String choice = sc.nextLine();
+
+                if (choice.equals("1")) {
+                    System.out.print("Nhap ten: ");
+                    String name = sc.nextLine();
+                    System.out.print("Nhap so dien thoai: ");
+                    String phone = sc.nextLine();
+                    service.addContact(name, phone);
+                    System.out.println("Da them lien he.");
+                } else if (choice.equals("2")) {
+                    System.out.print("Nhap ten can sua: ");
+                    String name = sc.nextLine();
+                    System.out.print("Nhap so dien thoai moi: ");
+                    String phone = sc.nextLine();
+                    if (service.updateContact(name, phone)) {
+                        System.out.println("Da sua lien he.");
+                    } else {
+                        System.out.println("Khong tim thay lien he.");
+                    }
+                } else if (choice.equals("3")) {
+                    System.out.print("Nhap ten can tim: ");
+                    String name = sc.nextLine();
+                    String phone = service.findContact(name);
+                    if (phone == null) {
+                        System.out.println("Khong tim thay lien he.");
+                    } else {
+                        System.out.println(name + " - " + phone);
+                    }
+                } else if (choice.equals("4")) {
+                    System.out.print("Nhap ten can xoa: ");
+                    String name = sc.nextLine();
+                    if (service.deleteContact(name)) {
+                        System.out.println("Da xoa lien he.");
+                    } else {
+                        System.out.println("Khong tim thay lien he.");
+                    }
+                } else if (choice.equals("0")) {
+                    running = false;
+                } else {
+                    System.out.println("Lua chon khong hop le.");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai4;
+
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+
+public class ContactServer {
+    public static void main(String[] args) {
+        try {
+            LocateRegistry.createRegistry(1099);
+            ContactServiceImpl service = new ContactServiceImpl();
+            Naming.rebind("rmi://localhost:1099/ContactService", service);
+            System.out.println("Server dang chay...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai4;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface ContactService extends Remote {
+    void addContact(String name, String phone) throws RemoteException;
+
+   
+    boolean updateContact(String name, String phone) throws RemoteException;
+
+ 
+    String findContact(String name) throws RemoteException;
+
+    boolean deleteContact(String name) throws RemoteException;
+}
+
+package bai4;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
+
+public class ContactServiceImpl extends UnicastRemoteObject implements ContactService {
+
+   
+    private HashMap<String, String> contacts = new HashMap<String, String>();
+
+    public ContactServiceImpl() throws RemoteException {
+        super();
+    }
+
+    public void addContact(String name, String phone) throws RemoteException {
+        contacts.put(name, phone);
+        System.out.println("Da them: " + name + " - " + phone);
+    }
+
+    public boolean updateContact(String name, String phone) throws RemoteException {
+        if (contacts.containsKey(name)) {
+            contacts.put(name, phone);
+            return true;
+        }
+        return false;
+    }
+
+    public String findContact(String name) throws RemoteException {
+     
+        return contacts.get(name);
+    }
+
+    public boolean deleteContact(String name) throws RemoteException {
+        if (contacts.containsKey(name)) {
+            contacts.remove(name);
+            return true;
+        }
+        return false;
+    }
+}
