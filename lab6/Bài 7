@@ -1,0 +1,110 @@
+package bai7;
+
+import java.rmi.Naming;
+import java.util.Scanner;
+
+public class ShapeClient {
+    public static void main(String[] args) {
+        try {
+            ShapeService service = (ShapeService) Naming.lookup("rmi://localhost:1099/ShapeService");
+            Scanner sc = new Scanner(System.in);
+
+            boolean running = true;
+            while (running) {
+                System.out.println();
+                System.out.println("===== TINH DIEN TICH =====");
+                System.out.println("1. Hinh chu nhat");
+                System.out.println("2. Hinh tron");
+                System.out.println("3. Hinh tam giac");
+                System.out.println("0. Thoat");
+                System.out.print("Chon: ");
+                String choice = sc.nextLine();
+
+                if (choice.equals("1")) {
+                    System.out.print("Nhap chieu rong: ");
+                    double width = Double.parseDouble(sc.nextLine());
+                    System.out.print("Nhap chieu cao: ");
+                    double height = Double.parseDouble(sc.nextLine());
+                    double area = service.rectangleArea(width, height);
+                    System.out.println("Dien tich hinh chu nhat = " + area);
+                } else if (choice.equals("2")) {
+                    System.out.print("Nhap ban kinh: ");
+                    double radius = Double.parseDouble(sc.nextLine());
+                    double area = service.circleArea(radius);
+                    System.out.println("Dien tich hinh tron = " + area);
+                } else if (choice.equals("3")) {
+                    System.out.print("Nhap do dai day: ");
+                    double base = Double.parseDouble(sc.nextLine());
+                    System.out.print("Nhap chieu cao: ");
+                    double height = Double.parseDouble(sc.nextLine());
+                    double area = service.triangleArea(base, height);
+                    System.out.println("Dien tich hinh tam giac = " + area);
+                } else if (choice.equals("0")) {
+                    running = false;
+                } else {
+                    System.out.println("Lua chon khong hop le.");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai7;
+
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+
+public class ShapeServer {
+    public static void main(String[] args) {
+        try {
+            LocateRegistry.createRegistry(1099);
+            ShapeServiceImpl service = new ShapeServiceImpl();
+            Naming.rebind("rmi://localhost:1099/ShapeService", service);
+            System.out.println("Server dang chay...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai7;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface ShapeService extends Remote {
+    double rectangleArea(double width, double height) throws RemoteException;
+
+    double circleArea(double radius) throws RemoteException;
+
+    double triangleArea(double base, double height) throws RemoteException;
+}
+
+package bai7;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class ShapeServiceImpl extends UnicastRemoteObject implements ShapeService {
+
+    public ShapeServiceImpl() throws RemoteException {
+        super();
+    }
+
+ 
+    public double rectangleArea(double width, double height) throws RemoteException {
+        return width * height;
+    }
+
+    public double circleArea(double radius) throws RemoteException {
+        return Math.PI * radius * radius;
+    }
+
+   
+    public double triangleArea(double base, double height) throws RemoteException {
+        return 0.5 * base * height;
+    }
+}
+
