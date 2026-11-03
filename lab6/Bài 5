@@ -1,0 +1,92 @@
+package bai5;
+
+import java.rmi.Naming;
+import java.util.Scanner;
+
+public class ChatClient {
+    public static void main(String[] args) {
+        try {
+            ChatService service = (ChatService) Naming.lookup("rmi://localhost:1099/ChatService");
+            Scanner sc = new Scanner(System.in);
+
+            System.out.println("Go tin nhan de chat (go exit de thoat)");
+            while (true) {
+                System.out.print("Ban: ");
+                String message = sc.nextLine();
+
+                if (message.equalsIgnoreCase("exit")) {
+                    break;
+                }
+
+                service.sendMessage(message);
+                String reply = service.getReply();
+                System.out.println("Server: " + reply);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai5;
+
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+
+public class ChatServer {
+    public static void main(String[] args) {
+        try {
+            LocateRegistry.createRegistry(1099);
+            ChatServiceImpl service = new ChatServiceImpl();
+            Naming.rebind("rmi://localhost:1099/ChatService", service);
+            System.out.println("Server chat dang chay...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai5;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface ChatService extends Remote {
+  
+    void sendMessage(String message) throws RemoteException;
+
+  
+    String getReply() throws RemoteException;
+}
+
+package bai5;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class ChatServiceImpl extends UnicastRemoteObject implements ChatService {
+
+  
+    private String reply = "";
+
+    public ChatServiceImpl() throws RemoteException {
+        super();
+    }
+
+    public void sendMessage(String message) throws RemoteException {
+       
+        System.out.println("Client noi: " + message);
+
+    
+        if (message.equalsIgnoreCase("xin chao")) {
+            reply = "Chao ban!";
+        } else {
+            reply = "Server da nhan: " + message;
+        }
+    }
+
+    public String getReply() throws RemoteException {
+        return reply;
+    }
+}
+
