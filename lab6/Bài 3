@@ -1,0 +1,79 @@
+package bai3;
+
+import java.rmi.Naming;
+import java.util.Scanner;
+
+public class PrimeClient {
+    public static void main(String[] args) {
+        try {
+            PrimeService service = (PrimeService) Naming.lookup("rmi://localhost:1099/PrimeService");
+
+            Scanner sc = new Scanner(System.in);
+            System.out.print("Nhap so can kiem tra: ");
+            int n = sc.nextInt();
+
+            boolean ketQua = service.isPrime(n);
+            if (ketQua) {
+                System.out.println(n + " la so nguyen to");
+            } else {
+                System.out.println(n + " KHONG phai la so nguyen to");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai3;
+
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+
+public class PrimeServer {
+    public static void main(String[] args) {
+        try {
+            LocateRegistry.createRegistry(1099);
+            PrimeServiceImpl service = new PrimeServiceImpl();
+            Naming.rebind("rmi://localhost:1099/PrimeService", service);
+            System.out.println("Server dang chay...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai3;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface PrimeService extends Remote {
+   
+    boolean isPrime(int n) throws RemoteException;
+}
+
+package bai3;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class PrimeServiceImpl extends UnicastRemoteObject implements PrimeService {
+
+    public PrimeServiceImpl() throws RemoteException {
+        super();
+    }
+
+    public boolean isPrime(int n) throws RemoteException {
+ 
+        if (n < 2) {
+            return false;
+        }
+    
+        for (int i = 2; i <= n / 2; i++) {
+            if (n % i == 0) {
+                return false; 
+            }
+        }
+        return true; 
+    }
+}
