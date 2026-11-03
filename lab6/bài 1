@@ -1,0 +1,63 @@
+package Bai1;
+
+import java.rmi.Naming;
+
+public class HelloClient {
+    public static void main(String[] args) {
+        try {
+            HelloService service = (HelloService) Naming.lookup("rmi://localhost:1099/HelloService");
+
+            String ketQua = service.sayHello();
+            System.out.println("Server tra ve: " + ketQua);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package Bai1;
+
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+
+public class HelloServer {
+    public static void main(String[] args) {
+        try {
+         
+            LocateRegistry.createRegistry(1099);
+
+      
+            HelloServiceImpl service = new HelloServiceImpl();
+            Naming.rebind("rmi://localhost:1099/HelloService", service);
+
+            System.out.println("Server dang chay...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package Bai1;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface HelloService extends Remote {
+    String sayHello() throws RemoteException;
+}
+
+package Bai1;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class HelloServiceImpl extends UnicastRemoteObject implements HelloService {
+
+    public HelloServiceImpl() throws RemoteException {
+        super();
+    }
+
+    public String sayHello() throws RemoteException {
+        return "Hello, World!";
+    }
+}
