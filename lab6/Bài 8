@@ -1,0 +1,210 @@
+package bai8;
+
+import java.rmi.Naming;
+import java.util.Scanner;
+
+public class FlightClient {
+    public static void main(String[] args) {
+        try {
+            FlightService service = (FlightService) Naming.lookup("rmi://localhost:1099/FlightService");
+            Scanner sc = new Scanner(System.in);
+
+            boolean running = true;
+            while (running) {
+                System.out.println();
+                System.out.println("===== DAT VE MAY BAY =====");
+                System.out.println("(Chuyen bay co san: VN123, VJ456, QH789)");
+                System.out.println("1. Dat ve");
+                System.out.println("2. Xem so ghe trong");
+                System.out.println("3. Huy ve");
+                System.out.println("0. Thoat");
+                System.out.print("Chon: ");
+                String choice = sc.nextLine();
+
+                if (choice.equals("1")) {
+                    System.out.print("Nhap ma chuyen bay: ");
+                    String flight = sc.nextLine().toUpperCase();
+                    System.out.print("Nhap so ghe can dat: ");
+                    int seats = Integer.parseInt(sc.nextLine());
+                    if (service.bookTicket(flight, seats)) {
+                        System.out.println("Dat ve thanh cong.");
+                    } else {
+                        System.out.println("Dat ve that bai (sai ma chuyen bay hoac khong du ghe).");
+                    }
+                } else if (choice.equals("2")) {
+                    System.out.print("Nhap ma chuyen bay: ");
+                    String flight = sc.nextLine().toUpperCase();
+                    int available = service.availableSeats(flight);
+                    if (available == -1) {
+                        System.out.println("Khong co chuyen bay nay.");
+                    } else {
+                        System.out.println("So ghe con trong: " + available);
+                    }
+                } else if (choice.equals("3")) {
+                    System.out.print("Nhap ma chuyen bay: ");
+                    String flight = sc.nextLine().toUpperCase();
+                    System.out.print("Nhap so ghe can huy: ");
+                    int seats = Integer.parseInt(sc.nextLine());
+                    if (service.cancelBooking(flight, seats)) {
+                        System.out.println("Huy ve thanh cong.");
+                    } else {
+                        System.out.println("Huy ve that bai (sai ma chuyen bay hoac huy qua so ghe da dat).");
+                    }
+                } else if (choice.equals("0")) {
+                    running = false;
+                } else {
+                    System.out.println("Lua chon khong hop le.");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai8;
+
+import java.rmi.Naming;
+import java.util.Scanner;
+
+public class FlightClient {
+    public static void main(String[] args) {
+        try {
+            FlightService service = (FlightService) Naming.lookup("rmi://localhost:1099/FlightService");
+            Scanner sc = new Scanner(System.in);
+
+            boolean running = true;
+            while (running) {
+                System.out.println();
+                System.out.println("===== DAT VE MAY BAY =====");
+                System.out.println("(Chuyen bay co san: VN123, VJ456, QH789)");
+                System.out.println("1. Dat ve");
+                System.out.println("2. Xem so ghe trong");
+                System.out.println("3. Huy ve");
+                System.out.println("0. Thoat");
+                System.out.print("Chon: ");
+                String choice = sc.nextLine();
+
+                if (choice.equals("1")) {
+                    System.out.print("Nhap ma chuyen bay: ");
+                    String flight = sc.nextLine().toUpperCase();
+                    System.out.print("Nhap so ghe can dat: ");
+                    int seats = Integer.parseInt(sc.nextLine());
+                    if (service.bookTicket(flight, seats)) {
+                        System.out.println("Dat ve thanh cong.");
+                    } else {
+                        System.out.println("Dat ve that bai (sai ma chuyen bay hoac khong du ghe).");
+                    }
+                } else if (choice.equals("2")) {
+                    System.out.print("Nhap ma chuyen bay: ");
+                    String flight = sc.nextLine().toUpperCase();
+                    int available = service.availableSeats(flight);
+                    if (available == -1) {
+                        System.out.println("Khong co chuyen bay nay.");
+                    } else {
+                        System.out.println("So ghe con trong: " + available);
+                    }
+                } else if (choice.equals("3")) {
+                    System.out.print("Nhap ma chuyen bay: ");
+                    String flight = sc.nextLine().toUpperCase();
+                    System.out.print("Nhap so ghe can huy: ");
+                    int seats = Integer.parseInt(sc.nextLine());
+                    if (service.cancelBooking(flight, seats)) {
+                        System.out.println("Huy ve thanh cong.");
+                    } else {
+                        System.out.println("Huy ve that bai (sai ma chuyen bay hoac huy qua so ghe da dat).");
+                    }
+                } else if (choice.equals("0")) {
+                    running = false;
+                } else {
+                    System.out.println("Lua chon khong hop le.");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai8;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface FlightService extends Remote {
+   
+    boolean bookTicket(String flightNumber, int seats) throws RemoteException;
+
+  
+    int availableSeats(String flightNumber) throws RemoteException;
+
+
+    boolean cancelBooking(String flightNumber, int seats) throws RemoteException;
+}
+
+package bai8;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
+
+public class FlightServiceImpl extends UnicastRemoteObject implements FlightService {
+
+  
+    private HashMap<String, Integer> availableMap = new HashMap<String, Integer>();
+
+
+    private HashMap<String, Integer> bookedMap = new HashMap<String, Integer>();
+
+    public FlightServiceImpl() throws RemoteException {
+        super();
+  
+        availableMap.put("VN123", 100);
+        availableMap.put("VJ456", 50);
+        availableMap.put("QH789", 80);
+
+        bookedMap.put("VN123", 0);
+        bookedMap.put("VJ456", 0);
+        bookedMap.put("QH789", 0);
+    }
+
+    public boolean bookTicket(String flightNumber, int seats) throws RemoteException {
+   
+        if (!availableMap.containsKey(flightNumber)) {
+            return false;
+        }
+        int available = availableMap.get(flightNumber);
+        int booked = bookedMap.get(flightNumber);
+
+      
+        if (seats <= 0 || seats > available) {
+            return false;
+        }
+        availableMap.put(flightNumber, available - seats);
+        bookedMap.put(flightNumber, booked + seats);
+        return true;
+    }
+
+    public int availableSeats(String flightNumber) throws RemoteException {
+        if (!availableMap.containsKey(flightNumber)) {
+            return -1;
+        }
+        return availableMap.get(flightNumber);
+    }
+
+    public boolean cancelBooking(String flightNumber, int seats) throws RemoteException {
+        if (!availableMap.containsKey(flightNumber)) {
+            return false;
+        }
+        int available = availableMap.get(flightNumber);
+        int booked = bookedMap.get(flightNumber);
+
+      
+        if (seats <= 0 || seats > booked) {
+            return false;
+        }
+        availableMap.put(flightNumber, available + seats);
+        bookedMap.put(flightNumber, booked - seats);
+        return true;
+    }
+}
