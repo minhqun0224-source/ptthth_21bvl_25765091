@@ -1,0 +1,230 @@
+package bai9;
+
+import java.rmi.Naming;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+public class AuctionClient {
+    public static void main(String[] args) {
+        try {
+            AuctionService service = (AuctionService) Naming.lookup("rmi://localhost:1099/AuctionService");
+            Scanner sc = new Scanner(System.in);
+
+            System.out.print("Nhap ten cua ban: ");
+            String myName = sc.nextLine();
+
+          
+            AuctionListenerImpl listener = new AuctionListenerImpl();
+            service.registerListener(listener);
+
+            boolean running = true;
+            while (running) {
+                System.out.println();
+                System.out.println("===== DAU GIA TRUC TUYEN (" + myName + ") =====");
+                System.out.println("1. Dang san pham (Seller)");
+                System.out.println("2. Xem danh sach san pham (Bidder)");
+                System.out.println("3. Dat gia thau (Bidder)");
+                System.out.println("0. Thoat");
+                System.out.print("Chon: ");
+                String choice = sc.nextLine();
+
+                if (choice.equals("1")) {
+                    System.out.print("Nhap ten san pham: ");
+                    String name = sc.nextLine();
+                    System.out.print("Nhap gia khoi diem: ");
+                    double startPrice = Double.parseDouble(sc.nextLine());
+                    if (service.addProduct(name, startPrice, myName)) {
+                        System.out.println("Da dang san pham.");
+                    } else {
+                        System.out.println("That bai (ten bi trung hoac gia khong hop le).");
+                    }
+                } else if (choice.equals("2")) {
+                    ArrayList<Product> list = service.getProducts();
+                    if (list.size() == 0) {
+                        System.out.println("Chua co san pham nao.");
+                    }
+                    for (int i = 0; i < list.size(); i++) {
+                        System.out.println((i + 1) + ". " + list.get(i));
+                    }
+                } else if (choice.equals("3")) {
+                    System.out.print("Nhap ten san pham: ");
+                    String name = sc.nextLine();
+                    System.out.print("Nhap gia thau: ");
+                    double price = Double.parseDouble(sc.nextLine());
+                    if (service.placeBid(name, myName, price)) {
+                        System.out.println("Dat gia thau thanh cong.");
+                    } else {
+                        System.out.println("That bai (khong co san pham hoac gia khong cao hon gia hien tai).");
+                    }
+                } else if (choice.equals("0")) {
+                    running = false;
+                } else {
+                    System.out.println("Lua chon khong hop le.");
+                }
+            }
+
+           
+            System.exit(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+package bai9;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface AuctionListener extends Remote {
+    void notifyMessage(String message) throws RemoteException;
+}
+
+
+package bai9;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+// Doi tuong nay chay o CLIENT, nhan thong bao tu server
+public class AuctionListenerImpl extends UnicastRemoteObject implements AuctionListener {
+
+    public AuctionListenerImpl() throws RemoteException {
+        super();
+    }
+
+    public void notifyMessage(String message) throws RemoteException {
+        System.out.println();
+        System.out.println("[THONG BAO] " + message);
+    }
+}
+
+
+package bai9;
+
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+
+public class AuctionServer {
+    public static void main(String[] args) {
+        try {
+            LocateRegistry.createRegistry(1099);
+            AuctionServiceImpl service = new AuctionServiceImpl();
+            Naming.rebind("rmi://localhost:1099/AuctionService", service);
+            System.out.println("Server dau gia dang chay...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+package bai9;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+
+public interface AuctionService extends Remote {
+    // Seller: them san pham (tra ve false neu ten bi trung)
+    boolean addProduct(String name, double startPrice, String seller) throws RemoteException;
+
+    // Bidder: xem danh sach san pham dang dau gia
+    ArrayList<Product> getProducts() throws RemoteException;
+
+    // Bidder: dat gia thau (tra ve true neu cao hon gia hien tai)
+    boolean placeBid(String productName, String bidder, double price) throws RemoteException;
+
+    // Client dang ky de nhan thong bao khi co nguoi dat gia cao hon
+    void registerListener(AuctionListener listener) throws RemoteException;
+}
+
+
+package bai9;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+
+public class AuctionServiceImpl extends UnicastRemoteObject implements AuctionService {
+
+    // Danh sach san pham dang dau gia
+    private ArrayList<Product> products = new ArrayList<Product>();
+
+    // Danh sach client dang cho nhan thong bao
+    private ArrayList<AuctionListener> listeners = new ArrayList<AuctionListener>();
+
+    public AuctionServiceImpl() throws RemoteException {
+        super();
+    }
+
+    // Ham tro giup: tim san pham theo ten, khong thay thi tra ve null
+    private Product findProduct(String name) {
+        for (int i = 0; i < products.size(); i++) {
+            if (products.get(i).getName().equalsIgnoreCase(name)) {
+                return products.get(i);
+            }
+        }
+        return null;
+    }
+
+    // synchronized: moi luc chi 1 client duoc vao ham, tranh 2 nguoi dat gia cung luc bi loi
+    public synchronized boolean addProduct(String name, double startPrice, String seller) throws RemoteException {
+        if (findProduct(name) != null) {
+            return false; // ten san pham da ton tai
+        }
+        if (startPrice <= 0) {
+            return false;
+        }
+        products.add(new Product(name, startPrice, seller));
+        System.out.println("Them san pham: " + name + " (gia khoi diem " + startPrice + ")");
+        return true;
+    }
+
+    public synchronized ArrayList<Product> getProducts() throws RemoteException {
+        return products;
+    }
+
+    public synchronized boolean placeBid(String productName, String bidder, double price) throws RemoteException {
+        Product p = findProduct(productName);
+        if (p == null) {
+            return false; // khong co san pham nay
+        }
+        if (price <= p.getPrice()) {
+            return false; // gia thau phai cao hon gia hien tai
+        }
+
+        // Cap nhat gia cao nhat
+        p.setPrice(price);
+        p.setHighestBidder(bidder);
+
+        String message = "San pham '" + p.getName() + "' vua co gia thau cao hon: "
+                + String.format("%,.0f", price) + " (nguoi dat: " + bidder + ")";
+        System.out.println(message);
+
+        // Gui thong bao cho tat ca client
+        sendToAll(message);
+        return true;
+    }
+
+    public synchronized void registerListener(AuctionListener listener) throws RemoteException {
+        listeners.add(listener);
+    }
+
+    // Gui thong bao cho moi client da dang ky
+    private void sendToAll(String message) {
+        ArrayList<AuctionListener> dead = new ArrayList<AuctionListener>();
+        for (int i = 0; i < listeners.size(); i++) {
+            try {
+                listeners.get(i).notifyMessage(message);
+            } catch (Exception e) {
+                // Client nay da tat, danh dau de xoa
+                dead.add(listeners.get(i));
+            }
+        }
+        listeners.removeAll(dead);
+    }
+}
+
+
