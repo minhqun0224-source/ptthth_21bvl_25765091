@@ -1,0 +1,67 @@
+package bai2;
+
+import java.rmi.Naming;
+import java.util.Scanner;
+
+public class CalcClient {
+    public static void main(String[] args) {
+        try {
+            CalcService service = (CalcService) Naming.lookup("rmi://localhost:1099/CalcService");
+
+            Scanner sc = new Scanner(System.in);
+            System.out.print("Nhap so a: ");
+            int a = sc.nextInt();
+            System.out.print("Nhap so b: ");
+            int b = sc.nextInt();
+
+            int tong = service.add(a, b);
+            System.out.println("Tong = " + tong);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai2;
+
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+
+public class CalcServer {
+    public static void main(String[] args) {
+        try {
+            LocateRegistry.createRegistry(1099);
+            CalcServiceImpl service = new CalcServiceImpl();
+            Naming.rebind("rmi://localhost:1099/CalcService", service);
+            System.out.println("Server dang chay...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package bai2;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface CalcService extends Remote {
+    int add(int a, int b) throws RemoteException;
+}
+
+
+package bai2;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class CalcServiceImpl extends UnicastRemoteObject implements CalcService {
+
+    public CalcServiceImpl() throws RemoteException {
+        super();
+    }
+
+    public int add(int a, int b) throws RemoteException {
+        return a + b;
+    }
+}
